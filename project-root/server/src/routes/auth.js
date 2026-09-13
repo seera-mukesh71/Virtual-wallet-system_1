@@ -148,10 +148,11 @@ router.post('/login', async (req, res, next) => {
     }
 
     const token = signToken(user);
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction, // must be true in production since sameSite:'none' requires it
+      sameSite: isProduction ? 'none' : 'lax', // 'none' needed for cross-domain (Vercel <-> Render)
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -167,7 +168,12 @@ router.post('/login', async (req, res, next) => {
 
 // ---- 5. Logout ----
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  const isProduction = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax'
+  });
   res.json({ success: true, message: 'Logged out' });
 });
 
